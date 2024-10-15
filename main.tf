@@ -69,7 +69,7 @@ resource "alicloud_nat_gateway" "nat_gateway" {
 }
 
 resource "alicloud_eip" "nat_eip" {
-  bandwidth           = 5
+  bandwidth    = 5
   internet_charge_type = "PayByTraffic"
 }
 
@@ -108,4 +108,38 @@ resource "alicloud_instance" "private_instance" {
   key_name = "han2"
   system_disk_category = "cloud_essd"
   system_disk_size     = 40
+}
+
+resource "alicloud_route_table" "vpc_route_table" {
+  vpc_id           = alicloud_vpc.my_vpc.id
+  route_table_name = "vpc_route_table"
+}
+
+resource "alicloud_route_table_attachment" "private_subnet_attachment" {
+  route_table_id = alicloud_route_table.vpc_route_table.id
+  vswitch_id     = alicloud_vswitch.private_subnet.id
+}
+
+resource "alicloud_route_entry" "private_subnet_to_nat" {
+  route_table_id        = alicloud_route_table.vpc_route_table.id
+  destination_cidrblock = "0.0.0.0/0"
+  nexthop_type          = "NatGateway"
+  nexthop_id            = alicloud_nat_gateway.nat_gateway.id
+}
+
+resource "alicloud_route_table" "public_route_table" {
+  vpc_id           = alicloud_vpc.my_vpc.id
+  route_table_name = "public_route_table"
+}
+
+resource "alicloud_route_table_attachment" "public_subnet_attachment" {
+  route_table_id = alicloud_route_table.public_route_table.id
+  vswitch_id     = alicloud_vswitch.public_subnet.id
+}
+
+resource "alicloud_route_entry" "public_subnet_to_nat" {
+  route_table_id        = alicloud_route_table.public_route_table.id
+  destination_cidrblock = "0.0.0.0/0"
+  nexthop_type          = "NatGateway"
+  nexthop_id            = alicloud_nat_gateway.nat_gateway.id
 }
